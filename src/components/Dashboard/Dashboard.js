@@ -26,7 +26,7 @@ class Dashboard extends Component {
     this.handleSubmit = this.handleSubmit.bind(this);
   }
 
-  showPlan = () => {
+  showLeads = () => {
     ai.get('', { 
 		headers: {
 			"Authorization": `Bearer ${token}`,
@@ -72,13 +72,13 @@ class Dashboard extends Component {
 		} 
 	})
     .then((res) => {
-      console.log(res.data)
+      this.showLeads();
     })
 
   }
 
   componentDidMount(){
-    this.showPlan();
+    this.showLeads();
     this.landingPageData();
   }
 
@@ -132,7 +132,6 @@ class Dashboard extends Component {
 				          Landing Page:
 				          <select name="landing_page" value={this.state.landing_page} onChange={this.handleChange} required class="form-control">
 				          	<option value="" disabled>Select...</option>
-
 				          	{
 	                    		this.state.uuid.map((d, i) => 
 	                    			(
