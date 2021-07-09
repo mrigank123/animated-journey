@@ -1,25 +1,44 @@
 import React, { Component } from 'react'
 import axios from 'axios'
+import createAuthRefreshInterceptor from 'axios-auth-refresh';
+
+const tokenString = localStorage.getItem('token');
+const userToken = JSON.parse(tokenString);
+const token = userToken?.access;
+const refresh = userToken?.refresh;
+
+const r = { refresh: refresh }
+
+// Function that will be called to refresh authorization
+const refreshAuthLogic = failedRequest => axios.post('https://api.thetradingprofits.com/api/token/refresh/', r).then(tokenRefreshResponse => {
+    const newToken = {
+      refresh: refresh,
+      access: tokenRefreshResponse.data.access
+    }
+    localStorage.setItem('token', JSON.stringify(newToken));
+    failedRequest.response.config.headers['Authorization'] = 'Bearer ' + tokenRefreshResponse.data.access;
+    return Promise.resolve();
+});
 
 const ai = axios.create({
   baseURL: 'https://api.thetradingprofits.com/api/leads/'
 });
 
-const tokenString = localStorage.getItem('token');
-const userToken = JSON.parse(tokenString);
-const token = userToken?.access;
+// Instantiate the interceptor (you can chain it as it returns the axios instance)
+// createAuthRefreshInterceptor(ai, refreshAuthLogic);
+createAuthRefreshInterceptor(axios, refreshAuthLogic);
 
 class Dashboard extends Component {
     constructor(props) {
     super(props);
     this.state = {
-    	data : [],
+    	data: [],
+      uuid: [],
 	    name: '',
-	  	email: "",
+	  	email: '',
 	    landing_page: '',
 	    subject: '',
-	    message: 'Test {{link}}',
-	    uuid: []
+	    message: 'Test {{link}}'
     };
 
     this.handleChange = this.handleChange.bind(this);
@@ -28,11 +47,11 @@ class Dashboard extends Component {
 
   showLeads = () => {
     ai.get('', { 
-		headers: {
-			"Authorization": `Bearer ${token}`,
-			"Content-Type": "application/json"
-		} 
-	})
+  		headers: {
+  			"Authorization": `Bearer ${token}`,
+  			"Content-Type": "application/json"
+  		} 
+  	})
     .then((res) => {
       this.setState({data: res.data})
     })
@@ -40,10 +59,10 @@ class Dashboard extends Component {
 
   landingPageData = () => {
     axios.get("https://api.thetradingprofits.com/api/pages/", {
-		headers: {
-			"Authorization": `Bearer ${token}`
-		} 
-	})
+  		headers: {
+  			"Authorization": `Bearer ${token}`
+  		} 
+  	})
     .then((res) => {
 		this.setState({uuid: res.data})
     })
@@ -66,11 +85,11 @@ class Dashboard extends Component {
     }
 
     ai.post('', d, {
-		headers: {
-			"Authorization": "Bearer " + token,
-			"Content-Type": "application/json"
-		} 
-	})
+  		headers: {
+  			"Authorization": "Bearer " + token,
+  			"Content-Type": "application/json"
+  		} 
+  	})
     .then((res) => {
       this.showLeads();
     })
@@ -85,75 +104,75 @@ class Dashboard extends Component {
   render() {
     return (
 		<>
-	      	<div>
-	            <div>
-	            <h4>Leads</h4>
-	                <table class="table table-striped table-sm">
-	                    <thead>
-	                        <tr>
-	                            <th>S.NO</th>
-	                            <th>Name</th>
-	                            <th>Email</th>
-	                            <th>Landing Page</th>
-	                            <th>Subject</th>
-	                            <th>Message</th>
-	                        </tr>
-	                    </thead>
-	                    <tbody>
-	                    	{
-	                    		this.state.data.map((d, i) => 
-	                    			(
-		                    			<tr key={i} id={i+1}>
-		                    				<td>{d.id}</td>
-		                    				<td>{d.name}</td>
-		                    				<td>{d.email}</td>
-		                    				<td>{d.landing_page}</td>
-		                    				<td>No subject</td>
-		                    				<td>No message</td>
-		                    			</tr>
-	                    			)
-	                    		)
-	                    	}
-	                    </tbody>
-	                </table>
-	            </div>
-	            <div style = {{ marginTop : 50 }}>
-	            	<h4>New Lead</h4>
-		        	<form onSubmit={this.handleSubmit}>
-		        		<label>
-				          Name:
-				          <input name="name" type="text" value={this.state.name} onChange={this.handleChange} required class="form-control"/>
-				        </label><br />
-				        <label>
-				          Email:
-				          <input type="email" name="email" value={this.state.email} onChange={this.handleChange} required class="form-control"/>
-				        </label><br />
-				        <label>
-				          Landing Page:
-				          <select name="landing_page" value={this.state.landing_page} onChange={this.handleChange} required class="form-control">
-				          	<option value="" disabled>Select...</option>
-				          	{
-	                    		this.state.uuid.map((d, i) => 
-	                    			(
-		                    			<option key={i} value={d.uuid}>{d.uuid}</option>
-	                    			)
-	                    		)
-	                    	}
-				          </select>
-				        </label><br />
-				        <label>
-				          Subject:
-				          <input type="text" name="subject" value={this.state.subject} onChange={this.handleChange} required class="form-control"/>
-				        </label><br />
-				        <label>
-				          Message:
-				          <input type="text" name="message" value={this.state.message} onChange={this.handleChange} required class="form-control"/>
-				        </label><br /><br />
-						<input type="submit" value="Submit" />
-				    </form>
-	            </div>
-	        </div>
-	    </>
+    	<div>
+          <div>
+          <h4>Leads</h4>
+              <table class="table table-striped table-sm">
+                  <thead>
+                      <tr>
+                          <th>S.NO</th>
+                          <th>Name</th>
+                          <th>Email</th>
+                          <th>Landing Page</th>
+                          <th>Subject</th>
+                          <th>Message</th>
+                      </tr>
+                  </thead>
+                  <tbody>
+                  	{
+                  		this.state.data.map((d, i) => 
+                  			(
+                    			<tr key={i} id={i+1}>
+                    				<td>{d.id}</td>
+                    				<td>{d.name}</td>
+                    				<td>{d.email}</td>
+                    				<td>{d.landing_page}</td>
+                    				<td>No subject</td>
+                    				<td>No message</td>
+                    			</tr>
+                  			)
+                  		)
+                  	}
+                  </tbody>
+              </table>
+          </div>
+          <div style = {{ marginTop : 50 }}>
+          	<h4>New Lead</h4>
+        	<form onSubmit={this.handleSubmit}>
+        		<label>
+		          Name:
+		          <input name="name" type="text" value={this.state.name} onChange={this.handleChange} required class="form-control"/>
+		        </label><br />
+		        <label>
+		          Email:
+		          <input type="email" name="email" value={this.state.email} onChange={this.handleChange} required class="form-control"/>
+		        </label><br />
+		        <label>
+		          Landing Page:
+		          <select name="landing_page" value={this.state.landing_page} onChange={this.handleChange} required class="form-control">
+		          	<option value="" disabled>Select...</option>
+		          	{
+              		this.state.uuid.map((d, i) => 
+              			(
+                			<option key={i} value={d.uuid}>{d.uuid}</option>
+              			)
+              		)
+              	}
+		          </select>
+		        </label><br />
+		        <label>
+		          Subject:
+		          <input type="text" name="subject" value={this.state.subject} onChange={this.handleChange} required class="form-control"/>
+		        </label><br />
+		        <label>
+		          Message:
+		          <input type="text" name="message" value={this.state.message} onChange={this.handleChange} required class="form-control"/>
+		        </label><br /><br />
+				<input type="submit" value="Submit" />
+		    </form>
+          </div>
+      </div>
+    </>
     )
   }
 }
